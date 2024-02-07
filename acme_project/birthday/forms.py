@@ -1,17 +1,36 @@
 from django import forms
+from django.core.exceptions import ValidationError
+
+from .models import Birthday
+
+BEATLES = {'Джон Леннон', 'Пол Маккартни', 'Джордж Харрисон', 'Ринго Старр'}
 
 
-class BirthdayForm(forms.Form):
-    first_name = forms.CharField(
-        max_length=20,
-        label='Имя'
-    )
-    last_name = forms.CharField(
-        required=False,
-        label='Фамилия',
-        help_text='Поле необязательное'
-    )
-    birthday = forms.DateField(
-        label='Дата рождения',
-        widget=forms.DateInput(attrs={'type': 'date'})
-    )
+class BirthdayForm(forms.ModelForm):
+
+    class Meta:
+        # Указываем модель, на основе которой должна строиться форма.
+        model = Birthday
+        # Указываем, что надо отобразить все поля.
+        fields = '__all__'
+        widgets = {
+            'birthday': forms.DateInput(attrs={'type': 'date'})
+        }
+
+    def clean_first_name(self):
+            # Получаем значение имени из словаря очищенных данных.
+        first_name = self.cleaned_data['first_name']
+            # Разбиваем полученную строку по пробелам 
+            # и возвращаем только первое имя.
+        return first_name.split()[0]
+
+    def clean(self):
+        # Получаем имя и фамилию из очищенных полей формы.
+        super().clean()
+        first_name = self.cleaned_data['first_name']
+        last_name = self.cleaned_data['last_name']
+        # Проверяем вхождение сочетания имени и фамилии во множество имён.
+        if f'{first_name} {last_name}' in BEATLES:
+            raise ValidationError(
+                'Мы тоже любим Битлз, но введите, пожалуйста, настоящее имя!'
+            )
